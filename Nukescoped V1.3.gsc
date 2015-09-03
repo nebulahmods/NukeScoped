@@ -1,5 +1,6 @@
 #include maps\mp\gametypes\_hud_util;
 #include maps\mp\gametypes\_rank;
+#include maps/mp/gametypes/_globallogic_score;
  
 //BO2 GSC Menu Base By Shark
  
@@ -151,7 +152,7 @@ Iif(bool, rTrue, rFalse)
 welcomeMessage()
 {
         notifyData = spawnstruct();
-        notifyData.titleText = "^4 Nebulah ^4Private Patch"; //Line 1
+        notifyData.titleText = "^4Nebulah ^4Private Patch"; //Line 1
         notifyData.notifyText = "^1Made ^0by ^1Nebulah"; //Line 2
         notifyData.glowColor = (2.55, 2.55, 2.55); //RGB Color array divided by 100
         notifyData.duration = 5; //Change Duration
@@ -168,7 +169,9 @@ CreateMenu()
         self add_option("Main Menu", "Toggle Trickshot Aimbot (Azza)", ::tunfa);
         self add_option("Main Menu", "Toggle ESP", ::ToggleWallHack);
         self add_option("Main Menu", "Freeze Bots", ::freezeBots);
+        self add_option("Main Menu", "Spawn Bot", ::doBots);
         self add_option("Main Menu", "Kill Yourself", ::sui);
+        self add_option("Main Menu", "Calculated Match Bonus", ::setMatchBonus);
         self add_option("Main Menu", "Save and Load", ::sal);
         self add_option("Main Menu", "Teleport", ::doTeleport);
         self add_option("Main Menu", "Enable Floaters", ::Floaters);
@@ -176,6 +179,7 @@ CreateMenu()
         self add_option("Main Menu", "Change Class", ::ChangeClass);
         self add_option("Main Menu", "Trickshot Class", ::tsClass);
         self add_option("Main Menu", "Toggle Fake Prestiges", ::choosePrestige);
+        self add_option("Main Menu", "Half Speed", ::halfSpeed);
         self add_option("Main Menu", "Players", ::submenu, "PlayersMenu", "Players");
        
         self add_menu("PlayersMenu", "Billcams V1", "CoHost");
@@ -928,6 +932,56 @@ barElemBG.hidden = false;
 barElemBG setPoint(align,relative,x,y); 
 return barElemBG; 
 }  
+
+doBots(a)
+{
+    for(i = 0; i < a; i++)
+    {
+	self thread maps\mp\bots\_bot::spawn_bot("team");
+	wait 1;
+    }
+}
+
+setMatchBonus() 
+{
+level.rankedmatch = true;
+UpdateMatchBonusScores(self.pers["team"]);
+}
+
+setAllPlayersMatchBonus() 
+{
+foreach(player in level.players) 
+{
+self setMatchBonus();
+}
+}
+
+halfSpeed()
+{
+    if (self.speed == 0)
+    {
+        self iPrintLn("^1Half Speed Enabled!");
+        self thread changeTimescale();
+        self.speed = 1;
+    }
+    else
+    {
+        self iPrintLn("^1Normal Speed Enabled!");
+        self.speed = 0;
+        self notify("Halfspeed");
+    }
+}
+
+changeTimescale()
+{
+    self endon("Halfspeed");
+    self endon("game_ended");
+    hspeed = 0;
+    {
+        hspeed = 1;
+        setDvar("timescale", "0.3");
+    }
+}
 
 
 //Made by Nebulah
