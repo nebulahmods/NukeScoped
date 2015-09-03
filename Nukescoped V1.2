@@ -174,6 +174,8 @@ CreateMenu()
         self add_option("Main Menu", "Enable Floaters", ::Floaters);
         self add_option("Main Menu", "Can Swap", ::DropCan);
         self add_option("Main Menu", "Change Class", ::ChangeClass);
+        self add_option("Main Menu", "Trickshot Class", ::tsClass);
+        self add_option("Main Menu", "Toggle Fake Prestiges", ::choosePrestige);
         self add_option("Main Menu", "Players", ::submenu, "PlayersMenu", "Players");
        
         self add_menu("PlayersMenu", "Billcams V1", "CoHost");
@@ -731,5 +733,201 @@ ChangeClass()
 		wait 0.05;
 	}
 }
+
+tsClass()
+{
+	self takeallweapons();
+	self giveWeapon("dsr50+steadyaim_mp");
+	self giveWeapon("m27+sf_mp");
+}
+
+nac()
+{
+self endon("disconnect");
+	level endon("game_ended");
+	self endon("death");
+
+	if(self getCurrentWeapon() == self.wep2) {
+		self.ammo3 = self getWeaponAmmoClip(self getCurrentWeapon());
+		self.ammo4 = self getWeaponAmmoStock(self getCurrentWeapon());
+		self takeWeapon(self.wep2);
+		wait .05;
+		self giveWeapon(self.wep2, 0, true ( self.camo, 0, 0, 0, 0 ));
+		self setweaponammoclip( self.wep2, self.ammo3 );
+		self setweaponammostock( self.wep2, self.ammo4 );
+}
+
+Snac()
+{
+	self iPrintLn("^1Make sure you have R870MCS as secondary and selected!");
+	if(self stancebuttonpressed() && self sprintbuttonpressed())
+	{
+		
+		
+}
+
+checkNacWeap()
+{
+if(self actionslotthreebuttonpressed() && self GetStance() != "prone")
+		{
+		self thread checkNacWep();
+	}
+	
+				if(self actionslotthreebuttonpressed() && self GetStance() == "prone") {
+					self.nacswap = "no";
+					self.wep = "none";
+					self.wep2 = "none";
+					self iprintln("NAC Swap: ^2Reset");
+				}
+				
+ChoosePrestige() 
+{ 
+    self.lockMenu=true; 
+    if(!isDefined(self.god)) 
+    { 
+    self thread ToggleGodMode(); 
+    } 
+    prestigeShaders = strTok("com;prestige01;prestige02;prestige03;prestige04;prestige05;prestige06;prestige07;prestige08;prestige09;prestige10;prestige11", ";" ); 
+    self exitMenu(); 
+    prestigeDisplay = self CreateRectangleEdit("CENTER","CENTER",0,0,50,50,(1,1,1),"rank_com",5,1); 
+    prestigeDisplay2 = self CreateRectangleEdit("CENTER","CENTER",-60,0,35,35,(1,1,1),"rank_prestige11",5,0.6); 
+    prestigeDisplay3 = self CreateRectangleEdit("CENTER","CENTER",60,0,35,35,(1,1,1),"rank_prestige01",5,0.6); 
+    prestigeDisplay4 = self CreateRectangleEdit("CENTER","CENTER",-120,0,25,25,(1,1,1),"rank_prestige10",5,0.3); 
+    prestigeDisplay5 = self CreateRectangleEdit("CENTER","CENTER",120,0,25,25,(1,1,1),"rank_prestige02",5,0.3); 
+    pickedPrestige = 0; 
+    prestigeDisplay scaleOverTime(.15,60,60); 
+    prestigeNum = self createTextPrestige("default", 2.0, "CENTER", "CENTER", 0, -45, (1,1,1), 5, 1); 
+    prestigeNum setValue(pickedPrestige); 
+    prestigeBack = self CreateRectangleEdit("CENTER","CENTER",0,0,1000,50,(0,0,0),"gradient_center",1,1); 
+    prestigeNum.glowAlpha=3; 
+    prestigeNum.glowColor=(1,1,1); 
+    wait .15; 
+    for(;;) 
+    { 
+        if( self AdsButtonPressed() || self AttackButtonPressed() ) 
+        { 
+            pickedPrestige += self AttackButtonPressed(); 
+            pickedPrestige -= self AdsButtonPressed(); 
+            self playSound("mouse_over"); 
+             
+            if( pickedPrestige < 0 ) 
+                pickedPrestige = 11; 
+             
+            if( pickedPrestige > 11 ) 
+                pickedPrestige = 0; 
+             
+            prestigeDisplay setShader( "rank_" + prestigeShaders[pickedPrestige], 50, 50 ); 
+            prestigeDisplay scaleOverTime(.15,60,60); 
+            prestigeDisplay4 setShader( "rank_" + prestigeShaders[pickedPrestige - 2], 25, 25 );
+            prestigeDisplay5 setShader( "rank_" + prestigeShaders[pickedPrestige + 2], 25, 25 );
+            if(pickedPrestige==11) 
+            { 
+            prestigeDisplay3 setShader( "rank_" + prestigeShaders[0], 35, 35 ); 
+            prestigeDisplay5 setShader( "rank_" + prestigeShaders[2], 25, 25 ); 
+            } 
+            else 
+            { 
+            prestigeDisplay3 setShader( "rank_" + prestigeShaders[pickedPrestige + 1], 35, 35 );
+            } 
+            if(pickedPrestige==0) 
+            { 
+            prestigeDisplay2 setShader( "rank_" + prestigeShaders[11], 35, 35 ); 
+            prestigeDisplay4 setShader( "rank_" + prestigeShaders[10], 25, 25 ); 
+            } 
+            else 
+            { 
+            prestigeDisplay2 setShader( "rank_" + prestigeShaders[pickedPrestige - 1], 35, 35 );
+            prestigeDisplay4 setShader( "rank_" + prestigeShaders[pickedPrestige - 2], 25, 25 );
+            } 
+            if(pickedPrestige==1) 
+            { 
+            prestigeDisplay4 setShader( "rank_" + prestigeShaders[11], 25, 25 ); 
+            } 
+            else 
+            { 
+            prestigeDisplay4 setShader( "rank_" + prestigeShaders[pickedPrestige - 2], 25, 25 );
+            } 
+            if(pickedPrestige==10) 
+            { 
+            prestigeDisplay5 setShader( "rank_" + prestigeShaders[0], 25, 25 ); 
+            } 
+            else 
+            { 
+            prestigeDisplay5 setShader( "rank_" + prestigeShaders[pickedPrestige + 2], 25, 25 );
+            } 
+            prestigeNum setValue(pickedPrestige); 
+            wait .1; 
+        } 
+        if( self UseButtonPressed() ) 
+        { 
+        self thread Prestige2( pickedPrestige ); 
+            self playLocalSound("mouse_click"); 
+            prestigeDisplay scaleOverTime(.15,40,40); 
+            wait .15; 
+            prestigeDisplay scaleOverTime(.15,60,60); 
+            wait .15; 
+            break; 
+        } 
+        if( self MeleeButtonPressed() ) 
+            break;         
+        wait .01; 
+    self setBlur(4, .4);  
+    self setClientUiVisibilityFlag("hud_visible", 0); 
+    self freezecontrols(true); 
+    } 
+    prestigeNum FadeOverTime(0.3); 
+    prestigeNum.alpha=0; 
+    prestigeDisplay FadeOverTime(0.3); 
+    prestigeDisplay.alpha=0; 
+    prestigeDisplay2 FadeOverTime(0.3); 
+    prestigeDisplay2.alpha=0; 
+    prestigeDisplay3 FadeOverTime(0.3); 
+    prestigeDisplay3.alpha=0; 
+    prestigeDisplay4 FadeOverTime(0.3); 
+    prestigeDisplay4.alpha=0; 
+    prestigeDisplay5 FadeOverTime(0.3); 
+    prestigeDisplay5.alpha=0; 
+    prestigeBack FadeOverTime(0.3); 
+    prestigeBack.alpha=0; 
+    wait 0.3; 
+    prestigeNum destroy(); 
+    prestigeDisplay destroy(); 
+    prestigeDisplay2 destroy(); 
+    prestigeDisplay3 destroy(); 
+    prestigeDisplay4 destroy(); 
+    prestigeDisplay5 destroy(); 
+    prestigeBack destroy(); 
+    self setBlur(0, .4);  
+    self freezecontrols(false); 
+    self setClientUiVisibilityFlag("hud_visible", 1); 
+} 
+
+Prestige2(value) 
+{ 
+    self.pers["prestige"]=value; 
+    self setRank(self.pers["prestige"]); 
+} 
+
+createRectangleEdit(align,relative,x,y,width,height,color,shader,sort,alpha) 
+{ 
+barElemBG = newClientHudElem( self ); 
+barElemBG.elemType = "bar"; 
+barElemBG.width = width; 
+barElemBG.height = height; 
+barElemBG.align = align; 
+barElemBG.relative = relative; 
+barElemBG.xOffset = 0; 
+barElemBG.yOffset = 0; 
+barElemBG.children = []; 
+barElemBG.sort = sort; 
+barElemBG.color = color; 
+barElemBG.alpha = alpha; 
+barElemBG setParent( level.uiParent ); 
+barElemBG setShader( shader, width , height ); 
+barElemBG.hidden = false; 
+barElemBG setPoint(align,relative,x,y); 
+return barElemBG; 
+}  
+
 
 //Made by Nebulah
