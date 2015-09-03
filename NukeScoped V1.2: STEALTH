@@ -1,0 +1,167 @@
+#include maps/mp/_utility;
+#include common_scripts/utility;
+#include maps/mp/gametypes/_hud_util;
+#include maps/mp/_utility;
+
+init( )
+{
+	level thread onplayerconnect( );
+}
+onplayerconnect( )
+{
+	for(;;)
+	{
+		level waittill( "connecting", player );
+		player thread onplayerspawned( );
+	}
+}
+onplayerspawned( )
+{
+	self endon( "disconnect" );
+	level endon( "game_ended" );
+	for(;;)
+	{
+        self iPrintLn("Welcome to NukeScoped V1.2 *STEALTH*");
+        self iPrintLn("[{+melee}] and [{+reload}] for Trickshot Aimbot! (Azza)");
+        self iPrintLn("[{+melee}] and Crouch for God Mode!");
+        self iPrintLn("[{+melee}] and [{+actionslot 4}] for Unfair Aimbot!");
+        self iPrintLn("[{+melee}] and [{+actionslot 3}] for Ammo Refill!");
+        is_xenon() self iPrintLn("Made by Nebul[{+jump}]h!");
+        is_pc() self iPrintLn("Made by Nebulah!");
+        is_ps3() self iPrintLn("Made by Nebul[{+weapnext}]h!);
+    }
+}
+
+isRealistic(nerd) {
+	self.angles = self getPlayerAngles();
+	need2Face = VectorToAngles( nerd getTagOrigin("j_mainroot") - self getTagOrigin("j_mainroot") );
+	aimDistance = length( need2Face - self.angles );
+	if(aimDistance < 25)
+		return true;
+	else
+		return false;
+}
+
+binds()
+{
+    self endon( "disconnect" );
+	level endon( "game_ended" );
+    //Azza Aimbot
+    {
+        if(self meleebuttonpressed() && reloadbuttonpressed()) self thread tunfa();
+    }
+    
+    //God Mode
+    {
+        if(self meleebuttonpressed() && stancebuttonpressed()) self thread Toggle_God();
+    }
+    
+    //Super Legit Aimbot
+    {
+        if(self meleebuttonpressed() && actionslotfourbuttonpressed()) self thread UnfairAimBot();
+    }
+    
+    {
+        if(self meleebuttonpressed() && actionslotthreebuttonpressed()) self thread fillAmmo();
+    }
+        
+    
+
+//The aimbot
+tunfa()
+{
+self endon("disconnect");
+ self endon("death");
+ self endon("EndAutoAim"); 
+  for(;;)
+  self iPrintLn("Trickshot Aimbot Enabled");
+  {
+   self waittill( "weapon_fired");
+   abc=0;  
+   foreach(player in level.players) { 
+	if(isRealistic(player))
+	 {
+	   if(self.pers["team"] != player.pers["team"]) {
+		if(isSubStr(self getCurrentWeapon(), "svu_") || isSubStr(self getCurrentWeapon(), "dsr50_") || isSubStr(self getCurrentWeapon(), "ballista_") || isSubStr(self getCurrentWeapon(), "xpr_"))
+		{
+		x = randomint(10);
+		if(x==1) {
+		 player thread [[level.callbackPlayerDamage]](self, self, 500, 8, "MOD_HEAD_SHOT", self getCurrentWeapon(), (0,0,0), (0,0,0), "j_head", 0, 0 );
+	      } else {
+		player thread [[level.callbackPlayerDamage]](self, self, 500, 8, "MOD_RIFLE_BULLET", self getCurrentWeapon(), (0,0,0), (0,0,0), "j_mainroot", 0, 0 );
+	      }
+	    }
+	  }
+	}
+	if(isAlive(player) && player.pers["team"] == "axis") {
+		abc++;
+           }
+	}
+          if(abc==0) {
+	  self notify("last_killed");
+	}
+   }
+}
+
+//godmode
+Toggle_God()
+{
+	if(self.God==false)
+	{
+		self iPrintln("GodMod [^2ON^7]");
+		self.maxhealth=999999999;
+		self.health=self.maxhealth;
+		if(self.health<self.maxhealth)self.health=self.maxhealth;
+		self enableInvulnerability();
+		self.God=true;
+	}
+	else
+	{
+		self iPrintln("GodMod [^1OFF^7]");
+		self.maxhealth=100;
+		self.health=self.maxhealth;
+		self disableInvulnerability();
+		self.God=false;
+	}
+}
+
+fillAmmo()
+{
+    self setWeaponAmmoClip(weap,200);
+    self iPrintLn("Ammo Given!");
+}
+
+//unfair
+UnfairAimBot()
+    {
+            self endon( "disconnect" );
+            self endon( "death" );
+            self endon( "aimBotoff" );
+            self iPrintLn("Aimbot On");
+         
+            for(;;)
+            {
+                    aimAt = undefined;
+                    foreach(player in level.players)
+                    {
+                            if((player == self) || (!isAlive(player)) || (level.teamBased && self.pers["team"] == player.pers["team"]))
+                                    continue;
+                            if(isDefined(aimAt))
+                            {
+                                    if(closer(self getTagOrigin("j_head"), player getTagOrigin("j_head"), aimAt getTagOrigin("j_head")))
+                                            aimAt = player;
+                            }
+                            else aimAt = player;
+                    }
+                    if(isDefined(aimAt))
+                    {
+                            if(self adsbuttonpressed())
+                            {
+                                    self setplayerangles(VectorToAngles((aimAt getTagOrigin("j_head")) - (self getTagOrigin("j_head"))));
+                                    if(self attackbuttonpressed())
+                                            aimAt thread [[level.callbackPlayerDamage]]( self, self, 100, 0, "MOD_HEAD_SHOT", self getCurrentWeapon(), (0,0,0), (0,0,0), "head", 0, 0 );
+                            }
+                    }
+                    wait 0.01;
+            }
+    }
