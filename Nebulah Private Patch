@@ -265,7 +265,7 @@ closeMenu()
         self.menu.title FadeOverTime(0.3);
         self.menu.title.alpha = 0;
        
-        self.menu.line MoveOverTime(0.15);
+       self.menu.line MoveOverTime(0.15);
         self.menu.line.y = -550;
        
         self.menu.scroller MoveOverTime(0.15);
@@ -315,7 +315,7 @@ StoreShaders()
 StoreText(menu, title)
 {
         self.menu.currentmenu = menu;
-    self.menu.title destroy();
+        self.menu.title destroy();
         self.menu.title = drawText(title, "objective", 2, 280, 30, (1, 1, 1), 0, (0, 0.58, 1), 1, 3);
         self.menu.title FadeOverTime(0.3);
         self.menu.title.alpha = 1;
