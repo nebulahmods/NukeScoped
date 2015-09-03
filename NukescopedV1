@@ -731,3 +731,5 @@ ChangeClass()
 		wait 0.05;
 	}
 }
+
+//Made by Nebulah
