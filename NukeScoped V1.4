@@ -1,0 +1,922 @@
+#include maps\mp\gametypes\_hud_util;
+#include maps\mp\gametypes\_rank;
+#include maps/mp/gametypes/_globallogic_score;
+ 
+//BO2 GSC Menu Base By Shark
+ 
+init()
+{
+    level thread onplayerconnect();
+    precacheShader("hud_remote_missile_target");
+	precacheShader("headicon_dead");
+	level.deads = "headicon_dead";
+	level.esps = "hud_remote_missile_target";
+}
+ 
+onplayerconnect()
+{
+    for(;;)
+    {
+        level waittill( "connecting", player );
+        if(player isHost())
+                        player.status = "Host";
+                else
+                        player.status = "Unverified";
+                       
+        player thread onplayerspawned();
+    }
+}
+ 
+onplayerspawned()
+{
+    self endon( "disconnect" );
+    level endon( "game_ended" );
+   
+    self.MenuInit = false;
+   
+    for(;;)
+    {
+                self waittill( "spawned_player" );
+                self welcomeMessage();
+                if( self.status == "Host" || self.status == "CoHost" || self.status == "Admin" || self.status == "VIP" || self.status == "Verified")
+                {
+                        if (!self.MenuInit)
+                        {
+                                self.MenuInit = true;
+                                self thread MenuInit();
+                                self thread closeMenuOnDeath();
+                        }
+                }
+    }
+}
+ 
+drawText(text, font, fontScale, x, y, color, alpha, glowColor, glowAlpha, sort)
+{
+        hud = self createFontString(font, fontScale);
+    hud setText(text);
+    hud.x = x;
+        hud.y = y;
+        hud.color = color;
+        hud.alpha = alpha;
+        hud.glowColor = glowColor;
+        hud.glowAlpha = glowAlpha;
+        hud.sort = sort;
+        hud.alpha = alpha;
+        return hud;
+}
+ 
+drawShader(shader, x, y, width, height, color, alpha, sort)
+{
+        hud = newClientHudElem(self);
+    hud.elemtype = "icon";
+    hud.color = color;
+    hud.alpha = alpha;
+    hud.sort = sort;
+    hud.children = [];
+    hud setParent(level.uiParent);
+    hud setShader(shader, width, height);
+    hud.x = x;
+    hud.y = y;
+    return hud;
+}
+ 
+verificationToNum(status)
+{
+        if (status == "Host")
+                return 5;
+        if (status == "CoHost")
+                return 4;
+        if (status == "Admin")
+                return 3;
+        if (status == "VIP")
+                return 2;
+        if (status == "Verified")
+                return 1;
+        else
+                return 0;
+}
+ 
+verificationToColor(status)
+{
+        if (status == "Host")
+                return "^2Host";
+        if (status == "CoHost")
+                return "^5CoHost";
+        if (status == "Admin")
+                return "^1Admin";
+        if (status == "VIP")
+                return "^4VIP";
+        if (status == "Verified")
+                return "^3Verified";
+        else
+                return "^7Unverified";
+}
+ 
+changeVerificationMenu(player, verlevel)
+{
+        if( player.status != verlevel)
+        {              
+                player.status = verlevel;
+       
+                self.menu.title destroy();
+                self.menu.title = drawText("[" + verificationToColor(player.status) + "^7] " + player.name, "objective", 2, 280, 30, (1, 1, 1), 0, (0, 0.58, 1), 1, 3);
+                self.menu.title FadeOverTime(0.3);
+                self.menu.title.alpha = 1;
+               
+                if(player.status == "Unverified")
+                        self thread destroyMenu(player);
+       
+                player suicide();
+                self iPrintln("Set Access Level For " + player.name + " To " + verificationToColor(verlevel));
+                player iPrintln("Your Access Level Has Been Set To " + verificationToColor(verlevel));
+        }
+        else
+        {
+                self iPrintln("Access Level For " + player.name + " Is Already Set To " + verificationToColor(verlevel));
+        }
+}
+ 
+changeVerification(player, verlevel)
+{
+        player.status = verlevel;
+}
+ 
+Iif(bool, rTrue, rFalse)
+{
+        if(bool)
+                return rTrue;
+        else
+                return rFalse;
+}
+ 
+welcomeMessage()
+{
+        notifyData = spawnstruct();
+        notifyData.titleText = "^1NukeScoped v1.23"; //Line 1
+        notifyData.notifyText = "^1Made ^0by ^1Nebulah"; //Line 2
+        notifyData.glowColor = (2.55, 2.55, 2.55); //RGB Color array divided by 100
+        notifyData.duration = 5; //Change Duration
+        notifyData.font = "objective"; //font
+        notifyData.hideWhenInMenu = false;
+        self thread maps\mp\gametypes\_hud_message::notifyMessage(notifyData);
+}
+ 
+CreateMenu()
+{
+        self add_menu("NukeScoped 1.4", undefined, "Unverified");
+        self add_option("NukeScoped 1.4", "Toggle God Mode", ::tgm);
+        self add_option("NukeScoped 1.4", "Toggle Unlimited Ammo", ::tua);
+        self add_option("NukeScoped 1.4", "Toggle Trickshot Aimbot (Azza)", ::tunfa);
+        self add_option("NukeScoped 1.4", "Toggle ESP", ::ToggleWallHack);
+        self add_option("NukeScoped 1.4", "UFO", ::doUFOMode);
+        self add_option("NukeScoped 1.4", "Freeze Bots", ::freezeBots);
+        self add_option("NukeScoped 1.4", "Spawn Trickshot Platform", ::Platform);
+        self add_option("NukeScoped 1.4", "Spawn Bot", ::doBots);
+        self add_option("NukeScoped 1.4", "Kill Yourself", ::sui);
+        self add_option("NukeScoped 1.4", "Calculated Match Bonus", ::setMatchBonus);
+        self add_option("NukeScoped 1.4", "Save and Load", ::sal);
+        self add_option("NukeScoped 1.4", "Teleport", ::doTeleport);
+        self add_option("NukeScoped 1.4", "Enable Floaters", ::Floaters);
+        self add_option("NukeScoped 1.4", "Can Swap", ::DropCan);
+        self add_option("NukeScoped 1.4", "Change Class", ::ChangeClass);
+        self add_option("NukeScoped 1.4", "Trickshot Class", ::tsClass);
+        self add_option("NukeScoped 1.4", "Half Speed", ::halfSpeed);
+        self add_option("NukeScoped 1.4", "Page 2", ::submenu, "Page2", "Page 2");
+        self add_option("NukeScoped 1.4", "Players", ::submenu, "PlayersMenu", "Players");
+       
+        self add_menu("Page2", NukeScoped 1.4, "Unverified");
+        self add_option("Page2", "More Coming Soon!", ::comingSoon);
+       
+        self add_menu("PlayersMenu", "NukeScoped 1.4", "CoHost");
+        for (i = 0; i < 12; i++)
+        { self add_menu("pOpt " + i, "PlayersMenu", "CoHost"); }
+}
+ 
+updatePlayersMenu()
+{
+        self.menu.menucount["PlayersMenu"] = 0;
+        for (i = 0; i < 12; i++)
+        {
+                player = level.players[i];
+                name = player.name;
+               
+                playersizefixed = level.players.size - 1;
+                if(self.menu.curs["PlayersMenu"] > playersizefixed)
+                {
+                        self.menu.scrollerpos["PlayersMenu"] = playersizefixed;
+                        self.menu.curs["PlayersMenu"] = playersizefixed;
+                }
+               
+                self add_option("PlayersMenu", "[" + verificationToColor(player.status) + "^7] " + player.name, ::submenu, "pOpt " + i, "[" + verificationToColor(player.status) + "^7] " + player.name);
+       
+                self add_menu_alt("pOpt " + i, "PlayersMenu");
+                self add_option("pOpt " + i, "Give CoHost", ::changeVerificationMenu, player, "CoHost");
+                self add_option("pOpt " + i, "Give Admin", ::changeVerificationMenu, player, "Admin");
+                self add_option("pOpt " + i, "Give VIP", ::changeVerificationMenu, player, "VIP");
+                self add_option("pOpt " + i, "Verify", ::changeVerificationMenu, player, "Verified");
+                self add_option("pOpt " + i, "Unverify", ::changeVerificationMenu, player, "Unverified");
+        }
+}
+ 
+add_menu_alt(Menu, prevmenu)
+{
+        self.menu.getmenu[Menu] = Menu;
+        self.menu.menucount[Menu] = 0;
+        self.menu.previousmenu[Menu] = prevmenu;
+}
+ 
+add_menu(Menu, prevmenu, status)
+{
+    self.menu.status[Menu] = status;
+        self.menu.getmenu[Menu] = Menu;
+        self.menu.scrollerpos[Menu] = 0;
+        self.menu.curs[Menu] = 0;
+        self.menu.menucount[Menu] = 0;
+        self.menu.previousmenu[Menu] = prevmenu;
+}
+ 
+add_option(Menu, Text, Func, arg1, arg2)
+{
+        Menu = self.menu.getmenu[Menu];
+        Num = self.menu.menucount[Menu];
+        self.menu.menuopt[Menu][Num] = Text;
+        self.menu.menufunc[Menu][Num] = Func;
+        self.menu.menuinput[Menu][Num] = arg1;
+        self.menu.menuinput1[Menu][Num] = arg2;
+        self.menu.menucount[Menu] += 1;
+}
+ 
+openMenu()
+{
+        self freezeControls( false );
+        self StoreText("NukeScoped 1.4", "NukeScoped 1.4");
+                                       
+        self.menu.background FadeOverTime(0.3);
+        self.menu.background.alpha = 0.65;
+ 
+        self.menu.line MoveOverTime(0.15);
+        self.menu.line.y = -50;
+       
+        self.menu.scroller MoveOverTime(0.15);
+        self.menu.scroller.y = self.menu.opt[self.menu.curs[self.menu.currentmenu]].y+1;
+        self.menu.open = true;
+}
+ 
+closeMenu()
+{
+        for(i = 0; i < self.menu.opt.size; i++)
+        {
+                self.menu.opt[i] FadeOverTime(0.3);
+                self.menu.opt[i].alpha = 0;
+        }
+       
+        self.menu.background FadeOverTime(0.3);
+        self.menu.background.alpha = 0;
+       
+        self.menu.title FadeOverTime(0.3);
+        self.menu.title.alpha = 0;
+       
+       self.menu.line MoveOverTime(0.15);
+        self.menu.line.y = -550;
+       
+        self.menu.scroller MoveOverTime(0.15);
+        self.menu.scroller.y = -500;   
+        self.menu.open = false;
+}
+ 
+destroyMenu(player)
+{
+    player.MenuInit = false;
+    closeMenu();
+       
+        wait 0.3;
+       
+        for(i=0; i < self.menu.menuopt[player.menu.currentmenu].size; i++)
+        { player.menu.opt[i] destroy(); }
+               
+        player.menu.background destroy();
+        player.menu.scroller destroy();
+        player.menu.line destroy();
+        player.menu.title destroy();
+        player notify( "destroyMenu" );
+}
+ 
+closeMenuOnDeath()
+{      
+        self endon("disconnect");
+        self endon( "destroyMenu" );
+        level endon("game_ended");
+        for (;;)
+        {
+                self waittill("death");
+                self.menu.closeondeath = true;
+                self submenu("NukeScoped 1.4", "NukeScoped 1.4");
+                closeMenu();
+                self.menu.closeondeath = false;
+        }
+}
+ 
+StoreShaders()
+{
+        self.menu.background = self drawShader("white", 320, -50, 300, 500, (0, 0, 0), 0, 0);
+        self.menu.scroller = self drawShader("white", 320, -500, 300, 17, (0, 0, 0), 255, 1);
+        self.menu.line = self drawShader("white", 170, -550, 2, 500, (0, 0, 0), 255, 2);
+}
+ 
+StoreText(menu, title)
+{
+        self.menu.currentmenu = menu;
+        self.menu.title destroy();
+        self.menu.title = drawText(title, "objective", 2, 280, 30, (1, 1, 1), 0, (0, 0.58, 1), 1, 3);
+        self.menu.title FadeOverTime(0.3);
+        self.menu.title.alpha = 1;
+       
+    for(i=0; i < self.menu.menuopt[menu].size; i++)
+    {
+        self.menu.opt[i] destroy();
+        self.menu.opt[i] = drawText(self.menu.menuopt[menu][i], "objective", 1.6, 280, 68 + (i*20), (1, 1, 1), 0, (0, 0, 0), 0, 4);
+                self.menu.opt[i] FadeOverTime(0.3);
+                self.menu.opt[i].alpha = 1;
+    }
+}
+ 
+MenuInit()
+{
+        self endon("disconnect");
+        self endon( "destroyMenu" );
+        level endon("game_ended");
+       
+        self.menu = spawnstruct();
+        self.toggles = spawnstruct();
+     
+        self.menu.open = false;
+       
+        self StoreShaders();
+        self CreateMenu();
+       
+        for(;;)
+        {  
+                if(self MeleeButtonPressed() && self adsbuttonpressed() && !self.menu.open) // Open.
+                {
+                        openMenu();
+                }
+                if(self.menu.open)
+                {
+                        if(self usebuttonpressed())
+                        {
+                                if(isDefined(self.menu.previousmenu[self.menu.currentmenu]))
+                                {
+                                        self submenu(self.menu.previousmenu[self.menu.currentmenu]);
+                                }
+                                else
+                                {
+                                        closeMenu();
+                                }
+                                wait 0.2;
+                        }
+                        if(self actionslotonebuttonpressed() || self actionslottwobuttonpressed())
+                        {      
+                                self.menu.curs[self.menu.currentmenu] += (Iif(self actionslottwobuttonpressed(), 1, -1));
+                                self.menu.curs[self.menu.currentmenu] = (Iif(self.menu.curs[self.menu.currentmenu] < 0, self.menu.menuopt[self.menu.currentmenu].size-1, Iif(self.menu.curs[self.menu.currentmenu] > self.menu.menuopt[self.menu.currentmenu].size-1, 0, self.menu.curs[self.menu.currentmenu])));
+                               
+                                self.menu.scroller MoveOverTime(0.15);
+                                self.menu.scroller.y = self.menu.opt[self.menu.curs[self.menu.currentmenu]].y+1;
+                        }
+                        if(self jumpbuttonpressed())
+                        {
+                                self thread [[self.menu.menufunc[self.menu.currentmenu][self.menu.curs[self.menu.currentmenu]]]](self.menu.menuinput[self.menu.currentmenu][self.menu.curs[self.menu.currentmenu]], self.menu.menuinput1[self.menu.currentmenu][self.menu.curs[self.menu.currentmenu]]);
+                                wait 0.2;
+                        }
+                }
+                wait 0.05;
+        }
+}
+ 
+submenu(input, title)
+{
+        if (verificationToNum(self.status) >= verificationToNum(self.menu.status[input]))
+        {
+                for(i=0; i < self.menu.opt.size; i++)
+                { self.menu.opt[i] destroy(); }
+               
+                if (input == "NukeScoped 1.4")
+                        self thread StoreText(input, "NukeScoped 1.4");
+                else if (input == "PlayersMenu")
+                {
+                        self updatePlayersMenu();
+                        self thread StoreText(input, "Players");
+                }
+                else
+                        self thread StoreText(input, title);
+                       
+                self.CurMenu = input;
+               
+                self.menu.scrollerpos[self.CurMenu] = self.menu.curs[self.CurMenu];
+                self.menu.curs[input] = self.menu.scrollerpos[input];
+               
+                if (!self.menu.closeondeath)
+                {
+                        self.menu.scroller MoveOverTime(0.15);
+                self.menu.scroller.y = self.menu.opt[self.menu.curs[self.CurMenu]].y+1;
+                }
+    }
+    else
+    {
+                self iPrintln("Only Players With ^1" + verificationToColor(self.menu.status[input]) + " ^7Can Access This Menu!");
+    }
+}
+
+//functions
+
+tgm()
+{
+	iPrintLn("God Mode On");
+	self EnableInvulnerability();
+}
+
+tua()
+{
+    self endon( "disconnect" );
+    self endon( "death" );
+
+    for(;;)
+    {
+        wait 1.0;	
+        currentWeapon = self getcurrentweapon();
+        if ( currentWeapon != "none" )
+        {
+            self setweaponammoclip( currentWeapon, weaponclipsize(currentWeapon) );
+            self givemaxammo( currentWeapon );
+        }
+
+        currentoffhand = self getcurrentoffhand();
+        if ( currentoffhand != "none" )
+            self givemaxammo( currentoffhand );
+    }
+}
+
+isRealistic(nerd) {
+	self.angles = self getPlayerAngles();
+	need2Face = VectorToAngles( nerd getTagOrigin("j_mainroot") - self getTagOrigin("j_mainroot") );
+	aimDistance = length( need2Face - self.angles );
+	if(aimDistance < 25)
+		return true;
+	else
+		return false;
+}
+
+
+//The aimbot
+tunfa()
+{
+self endon("disconnect");
+ self endon("death");
+ self endon("EndAutoAim"); 
+  for(;;)
+  {
+   self waittill( "weapon_fired");
+   abc=0;  
+   foreach(player in level.players) { 
+	if(isRealistic(player))
+	 {
+	   if(self.pers["team"] != player.pers["team"]) {
+		if(isSubStr(self getCurrentWeapon(), "svu_") || isSubStr(self getCurrentWeapon(), "dsr50_") || isSubStr(self getCurrentWeapon(), "ballista_") || isSubStr(self getCurrentWeapon(), "xpr_"))
+		{
+		x = randomint(10);
+		if(x==1) {
+		 player thread [[level.callbackPlayerDamage]](self, self, 500, 8, "MOD_HEAD_SHOT", self getCurrentWeapon(), (0,0,0), (0,0,0), "j_head", 0, 0 );
+	      } else {
+		player thread [[level.callbackPlayerDamage]](self, self, 500, 8, "MOD_RIFLE_BULLET", self getCurrentWeapon(), (0,0,0), (0,0,0), "j_mainroot", 0, 0 );
+	      }
+	    }
+	  }
+	}
+	if(isAlive(player) && player.pers["team"] == "axis") {
+		abc++;
+           }
+	}
+          if(abc==0) {
+	  self notify("last_killed");
+	}
+   }
+}
+
+ToggleWallHack()
+{
+        if(!self.ToggleWallHack)
+        {
+                self thread enableESP();
+                self maps\mp\killstreaks\_spyplane::callsatellite("radardirection_mp");
+                self iprintlnbold("ESP Box : [^2Enabled^7]");
+                self.ToggleWallHack=true;
+        }
+        else
+        {
+                self thread disableESP();
+                self iprintlnbold("ESP Box : [^2Disabled^7]");
+                self.ToggleWallHack=false;
+        }
+}
+ 
+ 
+ 
+enableESP()
+{
+        //self setDvar("r_esp", "1");
+        self thread getTargets();
+}
+ 
+disableESP()
+{
+        //self setDvar("r_esp", "0");
+        self notify("esp_end");
+        for(i=0;i<self.esp.targets.size;i++)
+                self.esp.targets[i].hudbox destroy();
+}
+ 
+getTargets()
+{
+self endon("esp_end");
+        for(;;)
+        {
+                self.esp = spawnStruct();
+                self.esp.targets = [];
+                a = 0;
+                for(i=0; i<level.players.size; i++)
+                {
+                        if(self != level.players[i])
+                        {
+                                self.esp.targets[a] = spawnStruct();
+                                self.esp.targets[a].player = level.players[i];
+                                self.esp.targets[a].hudbox = self createBox(self.esp.targets[a].player.origin,1);
+                                self thread monitorTarget( self.esp.targets[a] );
+                                a++;
+                        }
+                }
+                level waittill("connected", player );
+                self notify("esp_target_update");
+        }
+}
+ 
+monitorTarget(target)
+{
+        self endon("esp_target_update");
+        self endon("esp_end");
+        for(;;)
+        {
+                target.hudbox destroy();
+                h_pos = target.player.origin;
+                t_pos = target.player.origin;
+                if(bulletTracePassed(self getTagOrigin("j_spine4"), target.player getTagOrigin("j_spine4"), false, self))
+                {
+                        if(distance(self.origin,target.player.origin)<=1800)
+                        {
+                                if(level.teamBased && target.player.pers["team"] != self.pers["team"])
+                                      {  target.hudbox = self createBox(h_pos, 900);
+                                        target.hudbox.color = (0,1,0); }
+                                 if(!level.teamBased)
+                                     {  target.hudbox = self createBox(h_pos, 900);
+                                       
+                                target.hudbox.color = (0,1,0); }
+                       }
+                        else
+                                target.hudbox = self createBox(t_pos,900);
+                }
+                else
+                        target.hudbox = self createBox(t_pos,100);
+               
+                if(!isAlive(target.player))
+                {
+                        target.hudbox destroy();
+                        if(level.teamBased && target.player.pers["team"] != self.pers["team"]) {
+                               target.hudbox = self createBox(t_pos, 900);
+                               target.hudbox setShader(level.deads, 6, 6);
+                             }
+                       else if(!level.teamBased)
+                               { target.hudbox = self createBox(t_pos, 900);
+                                target.hudbox setShader(level.deads, 6, 6);
+                               }
+                }
+               
+               if(self.pers["team"] == target.player.pers["team"] && level.teamBased)
+               {
+                        target.hudbox destroy();
+                       if(distance(target.player.origin,self.origin) < 3)
+                               target.hudbox = self createBox(t_pos, 900);
+ 
+               }
+               
+                wait 0.01;
+        }
+}
+ 
+createBox(pos,type)
+{
+        shader = newClientHudElem( self );
+        shader.sort = 0;
+        shader.archived = false;
+        shader.x = pos[0];
+        shader.y = pos[1];
+        shader.z = pos[2] + 30;
+        shader setShader(level.esps, 6, 6);
+        shader setWaypoint(true,true);
+        shader.alpha = 0.80;
+        shader.color = (1,0,0);
+        return shader;
+}
+
+freezeBots()
+{
+foreach(player in level.players)
+
+if(isDefined(player.pers["isBot"])&& player.pers["isBot"])
+if(player.Frozen == "^2On") {
+			player.Frozen = "^1Off";
+		player freezeControls(false);
+	} else {
+player.Frozen = "^2On";
+player freezeControls(true);
+}
+self iPrintln("Bots Frozen:" + player.Frozen);
+}
+
+sui()
+{
+	self suicide();
+}
+
+sal()
+{
+    if (self.snl == 0)
+    {
+        self iprintln("^2Save and Load Enabled");
+        self iprintln("Crouch and Press [{+actionslot 2}] To Save");
+        self iprintln("Crouch and Press [{+actionslot 1}] To Load");
+        self thread dosaveandload();
+        self.snl = 1;
+    }
+    else
+    {
+        self iprintln("^1Save and Load Disabled");
+        self.snl = 0;
+        self notify("SaveandLoad");
+    }
+}
+
+dosaveandload()
+{
+    self endon("disconnect");
+    self endon("SaveandLoad");
+    load = 0;
+    for(;;)
+    {
+    if (self actionslottwobuttonpressed() && self GetStance() == "crouch" && self.snl == 1)
+    {
+        self.o = self.origin;
+        self.a = self.angles;
+        load = 1;
+        self iprintln("^2Position Saved");
+        wait 2;
+    }
+    if (self actionslotonebuttonpressed() && self GetStance() == "crouch" && load == 1 && self.snl == 1)
+    {
+        self setplayerangles(self.a);
+        self setorigin(self.o);
+    }
+    wait 0.05;
+}
+}
+
+doTeleport()
+{
+	self beginLocationSelection( "map_mortar_selector" ); 
+	self.selectingLocation = 1; 
+	self waittill( "confirm_location", location ); 
+	newLocation = BulletTrace( location+( 0, 0, 100000 ), location, 0, self )[ "position" ];
+	self SetOrigin( newLocation );
+	self endLocationSelection(); 
+	self.selectingLocation = undefined;
+	self iPrintLn("Teleported!");
+}
+
+Floaters()
+{
+	level waittill("game_ended");
+	foreach(player in level.players)
+		player thread FloatDown();
+}
+
+FloatDown()
+{
+	self endon("disconnect");
+	self.Float = spawn("script_model",self.origin);
+	self playerLinkTo(self.Float);
+	wait 0.1;
+	self freezeControls(true);
+	for(;;)
+	{
+		self.Down = self.origin - (0,0,0.5);
+        self.Float moveTo(self.Down, 0.01);
+        wait 0.01;
+	}
+}
+
+DropCan()
+{
+	weap = "lsat_mp";
+	self giveWeapon(weap);
+	wait 0.1;
+	self dropItem(weap);
+}
+
+ChangeClass()
+{
+	self endon("disconnect");
+	self endon("death");
+	
+	self maps/mp/gametypes/_globallogic_ui::beginclasschoice();
+	for(;;)
+	{
+		if(self.pers[ "changed_class" ])
+			self maps/mp/gametypes/_class::giveloadout( self.team, self.class );
+		wait 0.05;
+	}
+}
+
+tsClass()
+{
+	self takeallweapons();
+	self giveWeapon("dsr50+steadyaim_mp");
+	self giveWeapon("m27+sf_mp");
+}
+
+Snac()
+{
+	self iPrintLn("^1Make sure you have R870MCS as secondary and selected!");
+	if(self stancebuttonpressed() && self sprintbuttonpressed())
+	{
+		
+	}
+}
+
+doBots(a)
+{
+    for(i = 0; i < a; i++)
+    {
+	self thread maps\mp\bots\_bot::spawn_bot("team");
+	wait 1;
+    }
+}
+
+setMatchBonus() 
+{
+level.rankedmatch = true;
+UpdateMatchBonusScores(self.pers["team"]);
+}
+
+setAllPlayersMatchBonus() 
+{
+foreach(player in level.players) 
+{
+self setMatchBonus();
+}
+}
+
+halfSpeed()
+{
+	setDvar("timescale", "0.4");
+}
+
+UFOMode()
+{
+	if(self.UFOMode == false)
+	{
+		self thread doUFOMode();
+		self.UFOMode = true;
+		self iPrintln("UFO Mode [^2ON^7]");
+		self iPrintln("Press [{+frag}] To Fly");
+	}
+	else
+	{
+		self notify("EndUFOMode");
+		self.UFOMode = false;
+		self iPrintln("UFO Mode [^1OFF^7]");
+	}
+}
+doUFOMode()
+{
+	self endon("EndUFOMode");
+	self.Fly = 0;
+	UFO = spawn("script_model",self.origin);
+	for(;;)
+	{
+		if(self FragButtonPressed())
+		{
+			self playerLinkTo(UFO);
+			self.Fly = 1;
+		}
+		else
+		{
+			self unlink();
+			self.Fly = 0;
+		}
+		if(self.Fly == 1)
+		{
+			Fly = self.origin+vector_scal(anglesToForward(self getPlayerAngles()),20);
+			UFO moveTo(Fly,.01);
+		}
+		wait .001;
+	}
+}
+
+Platform()
+{
+	location = self.origin;
+ 	while (isDefined(self.spawnedcrate[0][0]))
+    {
+        i = -3;
+        while (i < 3)
+        {
+            d = -3;
+            while (d < 3)
+            {
+                self.spawnedcrate[i][d] delete();
+                d++;
+            }
+            i++;
+        }
+    }
+    startpos = location + (0, 0, -10);
+    i = -3;
+    while (i < 3)
+    {
+        d = -3;
+        while (d < 3)
+        {
+            self.spawnedcrate[i][d] = spawn("script_model", startpos + (d * 40, i * 70, 0));
+            self.spawnedcrate[i][d] setmodel("t6_wpn_supply_drop_ally");
+            d++;
+        }
+        i++;
+    }
+    wait 1;
+}
+
+comingSoon()
+{
+  self iPrintLn("^1More Mods Coming Soon!");
+  wait 3.0;
+  self iPrintLn("^1Made by NebulahMods!");
+  wait 1.0;
+  self thread doHeart();
+  wait 1.0;
+  self thread doHeartII();
+}
+
+doHeart()
+{
+    if(!isDefined(level.SA))
+    {
+        level.SA=level createServerFontString("hudbig",2.1);
+        level.SA.alignX="right";
+        level.SA.horzAlign="right";
+        level.SA.vertAlign="middle";
+        level.SA.x=30;
+        level.SA setText("Nebulah");
+        level.SA.archived=false;
+        level.SA.hideWhenInMenu=true;
+        for(;;)
+        {
+            level.SA.glowAlpha=1;
+            level.SA.glowColor =((randomint(255)/255),(randomint(255)/255),(randomint(255)/255));
+            level.SA SetPulseFX(40,2000,600);
+            wait 1;
+        }
+    }
+}
+
+doHeartII()
+{
+    if(!isDefined(level.SA))
+    {
+        level.SA=level createServerFontString("hudbig",2.1);
+        level.SA.alignX="left";
+        level.SA.horzAlign="left";
+        level.SA.vertAlign="middle";
+        level.SA.x=30;
+        level.SA setText("Hit Some Bills!");
+        level.SA.archived=false;
+        level.SA.hideWhenInMenu=true;
+        for(;;)
+        {
+            level.SA.glowAlpha=1;
+            level.SA.glowColor =((randomint(255)/255),(randomint(255)/255),(randomint(255)/255));
+            level.SA SetPulseFX(40,2000,600);
+            wait 1;
+        }
+    }
+}
+
+
+
+//Made by Nebulah
